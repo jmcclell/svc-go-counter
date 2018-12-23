@@ -1,0 +1,114 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{build.name}}
+  {%- if "endpoint" in build.profile %}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v0
+      ambassador_id: api-external
+      kind: Mapping
+      name: {{build.name}}-mapping
+      prefix: {{build.profile.endpoint}}
+      service: {{build.name}}
+      {%- if "weight" in build.profile %}
+      weight: {{build.profile.weight}}
+      {%- endif %}
+  {%- endif %}
+spec:
+  selector:
+    app: {{build.name}}
+  ports:
+    - port: 80
+      targetPort: http-port
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{build.name}}-admin
+  {%- if "admin_endpoint" in build.profile %}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v0
+      ambassador_id: api-admin
+      kind: Mapping
+      name: {{build.name}}-admin-mapping
+      prefix: {{build.profile.admin_endpoint}}
+      service: {{build.name}}-admin
+      {%- if "weight" in build.profile %}
+      weight: {{build.profile.weight}}
+      {%- endif %}
+  {%- endif %}
+spec:
+  selector:
+    app: {{build.name}}
+  ports:
+    - port: 80
+      targetPort: admin-port
+  type: ClusterIP
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: {{build.name}}
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{build.name}}
+    spec:
+      containers:
+      - name: {{build.name}}
+        image: {{build.images["docker/Dockerfile"]}}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{build.profile.min_memory|default("0.1G", true)}}
+            cpu: {{build.profile.min_cpu|default("0.1", true)}}
+          limits:
+            memory: {{build.profile.max_memory}}
+            cpu: {{build.profile.max_cpu}}
+        ports:
+        - name: http-port
+          containerPort: {{service.config.http_port}}
+        - name: admin-port
+          containerPort: {{service.config.admin_port}}
+        livenessProbe:
+          httpGet:
+            path: /live
+            port: admin-port
+          initialDelaySeconds: 3
+          periodSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: admin-port
+          initialDelaySeconds: 3
+          periodSeconds: 3
+          failureThreshold: 1
+        envFrom:
+          - configMapRef:
+              name: {{build.name}}-config
+{%- if "stablefoo" != build.profile.name %}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{build.name}}-config
+data:
+  PORT: "8000"
+  ADMIN_PORT: "9000"
+  GRACEFUL_SHUTDOWN_TIMEOUT: "30s"
+  # TODO: What is the right way to do this?
+  REDIS_URL: redis-master.default:6379
+  REDIS_DB: "0"
+  REDIS_PW: foobar # TODO: Secret
+  REDIS_PREFIX: counter
+{%- endif %}

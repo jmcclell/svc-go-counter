@@ -1,0 +1,28 @@
+FROM golang:1.8.5-jessie
+
+# Install hot reload tool, Gin
+RUN go get github.com/codegangsta/gin
+
+# Set working directory where code will live
+WORKDIR /go/src/app
+
+# Dependencies
+ADD go.mod ./
+ADD go.sum ./
+
+# Source Code
+ADD main.go ./
+
+RUN go get
+
+# App Environment Config
+ENV REDIS_URL localhost:6379
+ENV REDIS_PW ""
+ENV REDIS_DB 0
+
+# Gin Port (Gin will auto-config PORT env for svc)
+EXPOSE 3000
+
+# Run our app with gin by default
+CMD ["gin", "run", "main.go"]
+

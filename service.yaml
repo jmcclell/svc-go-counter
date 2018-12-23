@@ -1,0 +1,29 @@
+name: counter
+
+#TODO: make these the source of truth and pass them into docker build somehow
+config:
+  http_port: 8000
+  admin_port: 9000
+
+containers:
+- dockerfile: docker/Dockerfile
+  context: .
+
+profiles:
+  stable:
+    endpoint: /counter/
+    admin_endpoint: /counter/admin/
+    max_memory: 0.5G
+    max_cpu: 0.5
+  canary:
+    endpoint: /counter/
+    admin_endpoint: /counter/admin/
+    weight: 10
+    max_memory: 0.25G
+    max_cpu: 0.25
+  default:
+    name: {{branch.replace('/', '-')}}
+    endpoint: /preview/counter/{{branch}}/
+    admin_endpoint: /preview/counter/{{branch}}/admin/
+    max_memory: 0.25G
+    max_cpu: 0.25
