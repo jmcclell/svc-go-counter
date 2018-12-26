@@ -112,7 +112,8 @@ func initAdminServer() {
 }
 
 func aboutHandler(w http.ResponseWriter, r *http.Request) {
-	response := AboutResponse{Name: "counter", Version: version}
+	hostname, _ := os.Hostname()
+	response := AboutResponse{Name: "counter", Version: version, Hostname: hostname}
 	response.render(w)
 }
 
@@ -190,8 +191,9 @@ func (v NumberResponse) render(w http.ResponseWriter) {
 }
 
 type AboutResponse struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
+	Name     string `json:"name"`
+	Version  string `json:"version"`
+	Hostname string `json:"hostname"`
 }
 
 func (a AboutResponse) render(w http.ResponseWriter) {
