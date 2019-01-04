@@ -50,7 +50,7 @@ func main() {
 	initRedisClient()
 
 	router := http.NewServeMux()
-	router.HandleFunc("/", counterHandler)
+	router.HandleFunc("/next", counterHandler)
 
 	server := &http.Server{
 		Handler: router,
