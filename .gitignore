@@ -1,5 +1,4 @@
-go.sum
-go.mod
+vendor/
 gin-bin
 counter
 forge.yaml
